@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Signature Espresso",
+    "description": "Rich, bold, and perfectly balanced.",
+    "price": 149,
+    "image": "/images/products/espresso_placeholder.png"
+  },
+  {
+    "name": "Cold Brew Concentrate",
+    "description": "Brewed 18 hours for smooth sweetness.",
+    "price": 199,
+    "image": "/images/products/coldbrew_placeholder.png"
+  },
+  {
+    "name": "South Indian Filter Coffee",
+    "description": "Traditional decoction with aromatic chicory blend.",
+    "price": 99,
+    "image": "/images/products/filter_placeholder.png"
+  }
+]
