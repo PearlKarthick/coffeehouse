@@ -1,6 +1,6 @@
 async function renderProducts(){
   try{
-    const res = await fetch('/data/products.json');
+    const res = await fetch('data/products.json');
     const items = await res.json();
     // Home top 3
     const homeEl = document.getElementById('home-products');
