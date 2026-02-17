@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const enqSuccess = document.getElementById('enqSuccess');
 
   const phoneRegex = /^(\+91[\s-]?)?[6-9]\d{9}$/;
-  // Simple and effective for client-side validation
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+ // If you want a slightly stricter pattern (optional)
+const emailRegex = /^[\w.!#$%&'*+/=?^`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 
   function setErr(id, msg) {
     const el = document.getElementById(id);
