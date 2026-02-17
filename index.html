@@ -56,7 +56,94 @@
   <p class="lead">A glimpse of what our regulars love.</p>
   <div class="grid cols-3" id="home-products"></div>
 </section>
+<section class="section container" id="enquiry-feedback">
+  <h2>Get in touch</h2>
 
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="enquiry">Product Enquiry</button>
+    <button class="tab-btn" data-tab="feedback">Leave Feedback</button>
+  </div>
+
+  <div class="tab-panels">
+    <!-- ===================== TAB 1: ENQUIRY ===================== -->
+    <div id="tab-enquiry" class="tab-panel active">
+      <form id="enquiryForm" novalidate>
+        <div class="grid cols-3">
+          <div class="card">
+            <label for="enqName"><strong>Name *</strong></label>
+            <input type="text" id="enqName" placeholder="Your name" required minlength="2" />
+            <small class="error" id="err-enqName"></small>
+          </div>
+
+          <div class="card">
+            <label for="enqContact"><strong>Contact *</strong></label>
+            <input type="tel" id="enqContact" placeholder="+91 9876543210" required
+                   pattern="^(\+91[\s-]?)?[6-9]\d{9}$" />
+            <small class="muted">10‑digit Indian mobile or +91…</small><br/>
+            <small class="error" id="err-enqContact"></small>
+          </div>
+
+          <div class="card">
+            <label for="enqEmail"><strong>Email *</strong></label>
+            <input type="email" id="enqEmail" placeholder="you@example.com" required />
+            <small class="error" id="err-enqEmail"></small>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <label for="enqMessage"><strong>Product Enquiry *</strong></label>
+          <textarea id="enqMessage" rows="5" placeholder="Tell us what you need…" required></textarea>
+          <small class="error" id="err-enqMessage"></small>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn" type="submit" id="enqSubmit">Submit</button>
+          <span class="success" id="enqSuccess" hidden>
+            Enquiry submitted successfully — our team will reach out to you.
+          </span>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===================== TAB 2: FEEDBACK ===================== -->
+    <div id="tab-feedback" class="tab-panel">
+      <form id="feedbackForm" novalidate>
+        <div class="grid cols-3">
+          <div class="card">
+            <label for="fbName"><strong>Name *</strong></label>
+            <input type="text" id="fbName" placeholder="Your name" required minlength="2" />
+            <small class="error" id="err-fbName"></small>
+          </div>
+
+          <div class="card" style="grid-column: span 2;">
+            <label for="fbMessage"><strong>Feedback *</strong></label>
+            <textarea id="fbMessage" rows="4" placeholder="Share your experience…" required></textarea>
+            <small class="error" id="err-fbMessage"></small>
+          </div>
+        </div>
+
+        <div class="card">
+          <label><strong>Rate us</strong></label>
+          <div class="stars" id="fbStars" aria-label="Rate 1 to 5">
+            <span data-rate="1">★</span>
+            <span data-rate="2">★</span>
+            <span data-rate="3">★</span>
+            <span data-rate="4">★</span>
+            <span data-rate="5">★</span>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn" type="submit" id="fbSubmit">Submit</button>
+        </div>
+      </form>
+
+      <!-- New feedback will appear here -->
+      <div id="feedbackList" class="grid cols-3" style="margin-top:18px"></div>
+    </div>
+  </div>
+</section>
 </main>
 <footer class="site-footer">
   <div class="container">
