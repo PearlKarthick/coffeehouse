@@ -104,98 +104,109 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ---------- Feedback (Google Sheets via Apps Script) ---------- */
-  const fbForm = document.getElementById('feedbackForm');
-  const fbStars = document.getElementById('fbStars');
-  const fbList  = document.getElementById('feedbackList');
-  let selectedRating = 0;
+const GAS_FEEDBACK_URL = 'PASTE_YOUR_/exec_URL_HERE';
 
-  function renderStars(upto) {
-    if (!fbStars) return;
-    fbStars.querySelectorAll('span').forEach((s, i) => {
-      s.classList.toggle('active', i < upto);
+const fbForm = document.getElementById('feedbackForm');
+const fbStars = document.getElementById('fbStars');
+const fbList  = document.getElementById('feedbackList');
+let selectedRating = 0;
+
+function renderStars(upto) {
+  if (!fbStars) return;
+  fbStars.querySelectorAll('span').forEach((s, i) => {
+    s.classList.toggle('active', i < upto);
+  });
+}
+if (fbStars) {
+  fbStars.querySelectorAll('span').forEach(s => {
+    s.addEventListener('click', () => {
+      selectedRating = Number(s.dataset.rate);
+      renderStars(selectedRating);
     });
-  }
-  if (fbStars) {
-    fbStars.querySelectorAll('span').forEach(s => {
-      s.addEventListener('click', () => {
-        selectedRating = Number(s.dataset.rate);
-        renderStars(selectedRating);
-      });
-    });
-  }
+  });
+}
 
-  // API helpers
-  async function fetchAllFeedback() {
-    if (!GAS_FEEDBACK_URL) return [];
-    const res = await fetch(GAS_FEEDBACK_URL, { method: 'GET' });
-    return await res.json();
-  }
-  async function postFeedback({ name, message, rating }) {
-    const res = await fetch(GAS_FEEDBACK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, message, rating })
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Failed to submit');
-  }
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[c]));
+}
+function renderFeedbackListFromData(items) {
+  if (!fbList) return;
+  if (!Array.isArray(items) || !items.length) { fbList.innerHTML = ''; return; }
+  fbList.innerHTML = items
+    .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .map(it => {
+      const rate = Number(it.rating || 0);
+      const stars = '★'.repeat(rate) + '☆'.repeat(5 - rate);
+      const ts = it.timestamp ? new Date(it.timestamp).toLocaleString() : '';
+      return `
+        <article class="card feedback-card">
+          <h4>${escapeHtml(it.name || 'Guest')}</h4>
+          <div class="feedback-meta">${stars} • ${ts}</div>
+          <p>${escapeHtml(it.message || '')}</p>
+        </article>`;
+    }).join('');
+}
 
-  function escapeHtml(s) {
-    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[c]));
+async function fetchAllFeedback() {
+  const res = await fetch(GAS_FEEDBACK_URL, { method: 'GET' });
+  const txt = await res.text();
+  try {
+    return JSON.parse(txt);
+  } catch {
+    console.error('GET returned non-JSON:', txt);
+    throw new Error('Server did not return JSON on GET');
   }
-  function renderFeedbackListFromData(items) {
-    if (!fbList) return;
-    if (!Array.isArray(items) || !items.length) { fbList.innerHTML = ''; return; }
-    fbList.innerHTML = items
-      .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .map(it => {
-        const rate = Number(it.rating || 0);
-        const stars = '★'.repeat(rate) + '☆'.repeat(5 - rate);
-        const ts = it.timestamp ? new Date(it.timestamp).toLocaleString() : '';
-        return `
-          <article class="card feedback-card">
-            <h4>${escapeHtml(it.name || 'Guest')}</h4>
-            <div class="feedback-meta">${stars} • ${ts}</div>
-            <p>${escapeHtml(it.message || '')}</p>
-          </article>`;
-      }).join('');
-  }
+}
 
-  // Load list on page load
-  (async () => {
+async function postFeedback({ name, message, rating }) {
+  const res = await fetch(GAS_FEEDBACK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },   // JSON POST
+    body: JSON.stringify({ name, message, rating })
+  });
+  const txt = await res.text();
+  let data;
+  try {
+    data = JSON.parse(txt);
+  } catch {
+    console.error('POST returned non-JSON:', txt);
+    throw new Error('Server did not return JSON on POST');
+  }
+  if (!data.ok) throw new Error(data.error || 'Failed to submit');
+}
+
+(async () => {
+  try {
+    const items = await fetchAllFeedback();
+    renderFeedbackListFromData(items);
+  } catch (e) {
+    console.error('Failed to load feedback list:', e);
+  }
+})();
+
+if (fbForm) {
+  fbForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = (document.getElementById('fbName')?.value || '').trim();
+    const message = (document.getElementById('fbMessage')?.value || '').trim();
+
+    let ok = true;
+    const setErr = (id,msg)=>{ const el=document.getElementById(id); if(el) el.textContent=msg||''; };
+    if (name.length < 2) { setErr('err-fbName','Please enter your name'); ok = false; } else setErr('err-fbName','');
+    if (message.length < 2) { setErr('err-fbMessage','Please write your feedback'); ok = false; } else setErr('err-fbMessage','');
+
+    if (!ok) return;
+
     try {
+      await postFeedback({ name, message, rating: selectedRating || 0 });
+      fbForm.reset();
+      selectedRating = 0; renderStars(0);
       const items = await fetchAllFeedback();
       renderFeedbackListFromData(items);
-    } catch (e) {
-      console.error('Failed to load feedback', e);
+    } catch (err) {
+      alert('Sorry, could not submit feedback right now.');
+      console.error('Submit error:', err);
     }
-  })();
-
-  // Submit feedback
-  if (fbForm) {
-    fbForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const name = (document.getElementById('fbName')?.value || '').trim();
-      const message = (document.getElementById('fbMessage')?.value || '').trim();
-
-      let ok = true;
-      const setErr = (id,msg)=>{ const el=document.getElementById(id); if(el) el.textContent=msg||''; };
-      if (name.length < 2) { setErr('err-fbName','Please enter your name'); ok = false; } else setErr('err-fbName','');
-      if (message.length < 2) { setErr('err-fbMessage','Please write your feedback'); ok = false; } else setErr('err-fbMessage','');
-
-      if (!ok) return;
-
-      try {
-        await postFeedback({ name, message, rating: selectedRating || 0 });
-        fbForm.reset();
-        selectedRating = 0; renderStars(0);
-        const items = await fetchAllFeedback();
-        renderFeedbackListFromData(items);
-      } catch (err) {
-        alert('Sorry, could not submit feedback right now.');
-        console.error(err);
-      }
-    });
-  }
-});
+  });
+}
