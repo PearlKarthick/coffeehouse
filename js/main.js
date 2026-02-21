@@ -1,15 +1,19 @@
+/* ===== Momidev Coffee House main.js ===== */
+
+const GAS_FEEDBACK_URL = 'https://script.google.com/macros/s/AKfycby6TWNn-6hSOCBmzHXk-7UjwXxFX_BvHFpTDzbS34wBhH8wV-WRxP86wuqamCMVs6mS/exec'; // e.g., https://script.google.com/macros/s/.../exec
+const FORMSPREE_ENDPOINT = ''; // optional: e.g., 'https://formspree.io/f/abcdwxyz'
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Smooth scroll for internal links
+  /* ---------- Smooth scroll for internal links ---------- */
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
       const id = a.getAttribute('href').slice(1);
       const el = document.getElementById(id);
-      if (el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth'}); }
+      if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
     });
   });
-});
-document.addEventListener('DOMContentLoaded', () => {
-  // ---------------- Tabs ----------------
+
+  /* ---------- Tabs (Product Enquiry / Feedback) ---------- */
   const tabButtons = document.querySelectorAll('#enquiry-feedback .tab-btn');
   const panels = {
     enquiry: document.getElementById('tab-enquiry'),
@@ -20,20 +24,20 @@ document.addEventListener('DOMContentLoaded', () => {
       tabButtons.forEach(b => b.classList.remove('active'));
       Object.values(panels).forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
-      const key = btn.dataset.tab;
-      panels[key].classList.add('active');
+      panels[btn.dataset.tab].classList.add('active');
     });
   });
-  // Make Tab 1 visible by default
-  document.querySelector('#enquiry-feedback .tab-btn[data-tab="enquiry"]').click();
+  // default: show Product Enquiry
+  const defaultBtn = document.querySelector('#enquiry-feedback .tab-btn[data-tab="enquiry"]');
+  if (defaultBtn) defaultBtn.click();
 
-  // ---------------- Product Enquiry ----------------
+  /* ---------- Product Enquiry (validations + optional email) ---------- */
   const enqForm = document.getElementById('enquiryForm');
   const enqSuccess = document.getElementById('enqSuccess');
 
   const phoneRegex = /^(\+91[\s-]?)?[6-9]\d{9}$/;
- // If you want a slightly stricter pattern (optional)
-const emailRegex = /^[\w.!#$%&'*+/=?^`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+  // Simple, robust client-side email check
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   function setErr(id, msg) {
     const el = document.getElementById(id);
@@ -42,148 +46,156 @@ const emailRegex = /^[\w.!#$%&'*+/=?^`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$
 
   function validateEnquiry() {
     let ok = true;
-    const name = document.getElementById('enqName').value.trim();
-    const contact = document.getElementById('enqContact').value.trim();
-    const email = document.getElementById('enqEmail').value.trim();
-    const message = document.getElementById('enqMessage').value.trim();
+    const name = (document.getElementById('enqName')?.value || '').trim();
+    const contact = (document.getElementById('enqContact')?.value || '').trim();
+    const email = (document.getElementById('enqEmail')?.value || '').trim();
+    const message = (document.getElementById('enqMessage')?.value || '').trim();
 
-    // Name
     if (name.length < 2) { setErr('err-enqName', 'Please enter your name'); ok = false; }
     else setErr('err-enqName', '');
 
-    // Contact
     if (!phoneRegex.test(contact)) { setErr('err-enqContact', 'Enter a valid Indian mobile (e.g., 9876543210 or +91 9876543210)'); ok = false; }
     else setErr('err-enqContact', '');
 
-    // Email
     if (!emailRegex.test(email)) { setErr('err-enqEmail', 'Enter a valid email address'); ok = false; }
     else setErr('err-enqEmail', '');
 
-    // Message
     if (message.length < 2) { setErr('err-enqMessage', 'Please describe your product enquiry'); ok = false; }
     else setErr('err-enqMessage', '');
 
     return ok ? { name, contact, email, message } : null;
   }
 
-  // 🔔 Email sending setup (OPTIONAL)
-  // Use a static-form service like Formspree (free) – create a form and get an endpoint:
-  //   https://formspree.io/  (create -> get endpoint like https://formspree.io/f/xxxxxx)
-  // Then paste the URL below:
-  const FORMSPREE_ENDPOINT = ''; // e.g., 'https://formspree.io/f/abcdwxyz'
+  if (enqForm) {
+    enqForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (enqSuccess) enqSuccess.hidden = true;
+      const data = validateEnquiry();
+      if (!data) return;
 
-  enqForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    enqSuccess.hidden = true;
-    const data = validateEnquiry();
-    if (!data) return;
+      const payload = {
+        Name: data.name,
+        Contact: data.contact,
+        Email: data.email,
+        'Product Enquiry': data.message,
+        TargetEmail: 'pearl16750@gmail.com'
+      };
 
-    // Build payload
-    const payload = {
-      Name: data.name,
-      Contact: data.contact,
-      Email: data.email,
-      'Product Enquiry': data.message,
-      TargetEmail: 'pearl16750@gmail.com' // for your reference in the inbox
-    };
-
-    try {
-      if (FORMSPREE_ENDPOINT) {
-        // Send to Formspree (no backend needed)
-        const resp = await fetch(FORMSPREE_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          body: new FormData(Object.assign(document.createElement('form'), {
-            elements: [
-              Object.assign(document.createElement('input'), { name: 'Name', value: payload.Name }),
-              Object.assign(document.createElement('input'), { name: 'Contact', value: payload.Contact }),
-              Object.assign(document.createElement('input'), { name: 'Email', value: payload.Email }),
-              Object.assign(document.createElement('textarea'), { name: 'Product Enquiry', value: payload['Product Enquiry'] })
-            ]
-          }))
-        });
-        // ignore actual response body; Formspree emails you
-      } else {
-        // No endpoint configured. We’ll just log the data.
-        console.log('Enquiry (no email endpoint configured):', payload);
+      try {
+        if (FORMSPREE_ENDPOINT) {
+          // Send to Formspree (no backend required)
+          const fd = new FormData();
+          fd.append('Name', payload.Name);
+          fd.append('Contact', payload.Contact);
+          fd.append('Email', payload.Email);
+          fd.append('Product Enquiry', payload['Product Enquiry']);
+          await fetch(FORMSPREE_ENDPOINT, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+        } else {
+          // No email endpoint configured (only show success)
+          console.log('Enquiry (no email endpoint configured). Payload:', payload);
+        }
+        enqForm.reset();
+        if (enqSuccess) enqSuccess.hidden = false;
+      } catch (err) {
+        alert('Sorry, something went wrong. Please try again later.');
+        console.error(err);
       }
+    });
+  }
 
-      enqForm.reset();
-      enqSuccess.hidden = false;
-    } catch (err) {
-      alert('Sorry, something went wrong. Please try again later.');
-      console.error(err);
-    }
-  });
-
-  // ---------------- Feedback (localStorage) ----------------
+  /* ---------- Feedback (Google Sheets via Apps Script) ---------- */
   const fbForm = document.getElementById('feedbackForm');
   const fbStars = document.getElementById('fbStars');
-  const fbList = document.getElementById('feedbackList');
-
+  const fbList  = document.getElementById('feedbackList');
   let selectedRating = 0;
+
   function renderStars(upto) {
+    if (!fbStars) return;
     fbStars.querySelectorAll('span').forEach((s, i) => {
       s.classList.toggle('active', i < upto);
     });
   }
-  fbStars.querySelectorAll('span').forEach(s => {
-    s.addEventListener('click', () => {
-      selectedRating = Number(s.dataset.rate);
-      renderStars(selectedRating);
+  if (fbStars) {
+    fbStars.querySelectorAll('span').forEach(s => {
+      s.addEventListener('click', () => {
+        selectedRating = Number(s.dataset.rate);
+        renderStars(selectedRating);
+      });
     });
-  });
-
-  function validateFeedback() {
-    let ok = true;
-    const name = document.getElementById('fbName').value.trim();
-    const message = document.getElementById('fbMessage').value.trim();
-
-    if (name.length < 2) { setErr('err-fbName', 'Please enter your name'); ok = false; }
-    else setErr('err-fbName', '');
-
-    if (message.length < 2) { setErr('err-fbMessage', 'Please write your feedback'); ok = false; }
-    else setErr('err-fbMessage', '');
-
-    return ok ? { name, message, rating: selectedRating || 0 } : null;
   }
 
-  function loadFeedback() {
+  // API helpers
+  async function fetchAllFeedback() {
+    if (!GAS_FEEDBACK_URL) return [];
+    const res = await fetch(GAS_FEEDBACK_URL, { method: 'GET' });
+    return await res.json();
+  }
+  async function postFeedback({ name, message, rating }) {
+    const res = await fetch(GAS_FEEDBACK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, message, rating })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Failed to submit');
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[c]));
+  }
+  function renderFeedbackListFromData(items) {
+    if (!fbList) return;
+    if (!Array.isArray(items) || !items.length) { fbList.innerHTML = ''; return; }
+    fbList.innerHTML = items
+      .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .map(it => {
+        const rate = Number(it.rating || 0);
+        const stars = '★'.repeat(rate) + '☆'.repeat(5 - rate);
+        const ts = it.timestamp ? new Date(it.timestamp).toLocaleString() : '';
+        return `
+          <article class="card feedback-card">
+            <h4>${escapeHtml(it.name || 'Guest')}</h4>
+            <div class="feedback-meta">${stars} • ${ts}</div>
+            <p>${escapeHtml(it.message || '')}</p>
+          </article>`;
+      }).join('');
+  }
+
+  // Load list on page load
+  (async () => {
     try {
-      return JSON.parse(localStorage.getItem('momi_feedback') || '[]');
-    } catch { return []; }
-  }
-  function saveFeedback(arr) {
-    localStorage.setItem('momi_feedback', JSON.stringify(arr));
-  }
-  function fmtTime(ts) {
-    const d = new Date(ts);
-    return d.toLocaleString(); // user locale time
-  }
-  function renderFeedbackList() {
-    const items = loadFeedback();
-    if (!items.length) { fbList.innerHTML = ''; return; }
-    fbList.innerHTML = items.map(it => {
-      const stars = '★'.repeat(it.rating || 0) + '☆'.repeat(5 - (it.rating || 0));
-      return `
-        <article class="card feedback-card">
-          <h4>${it.name}</h4>
-          <div class="feedback-meta">${stars} • ${fmtTime(it.ts)}</div>
-          <p>${it.message}</p>
-        </article>`;
-    }).join('');
-  }
-  renderFeedbackList();
+      const items = await fetchAllFeedback();
+      renderFeedbackListFromData(items);
+    } catch (e) {
+      console.error('Failed to load feedback', e);
+    }
+  })();
 
-  fbForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const data = validateFeedback();
-    if (!data) return;
-    const items = loadFeedback();
-    items.unshift({ ...data, ts: new Date().toISOString() });
-    saveFeedback(items);
-    fbForm.reset();
-    selectedRating = 0; renderStars(0);
-    renderFeedbackList();
-  });
+  // Submit feedback
+  if (fbForm) {
+    fbForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = (document.getElementById('fbName')?.value || '').trim();
+      const message = (document.getElementById('fbMessage')?.value || '').trim();
+
+      let ok = true;
+      const setErr = (id,msg)=>{ const el=document.getElementById(id); if(el) el.textContent=msg||''; };
+      if (name.length < 2) { setErr('err-fbName','Please enter your name'); ok = false; } else setErr('err-fbName','');
+      if (message.length < 2) { setErr('err-fbMessage','Please write your feedback'); ok = false; } else setErr('err-fbMessage','');
+
+      if (!ok) return;
+
+      try {
+        await postFeedback({ name, message, rating: selectedRating || 0 });
+        fbForm.reset();
+        selectedRating = 0; renderStars(0);
+        const items = await fetchAllFeedback();
+        renderFeedbackListFromData(items);
+      } catch (err) {
+        alert('Sorry, could not submit feedback right now.');
+        console.error(err);
+      }
+    });
+  }
 });
